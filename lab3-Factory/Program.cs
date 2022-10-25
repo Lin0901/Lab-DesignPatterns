@@ -1,132 +1,87 @@
-﻿using System.Net;
-using System.Security.Cryptography.X509Certificates;
-using System.Xml.Linq;
+﻿using System;
+using System.Collections.Generic;
 
-public abstract class ClientHandler
+public abstract class User
 {
-    public ClientFactory ClientFactory { get; set; }
-
-    public abstract void CreateClient();
-}
-
-public class RetailClientHandler : ClientHandler
-{ 
-
-}
-
-public class EnterpriseClientHandler : ClientHandler
-{
-
-}
-
-
-
-public class ClientFactory
-{
-    public void CreateClient(string clientType, string userName)
+    public string Password { get; set; }
+    public void PasswordHash()
     {
-        Client newClient = new User(userName);
-
-        newClient.BuilAuthString(userName);
-
-        return newClient;
-    }
-}
-
-public interface Client
-{
-    public string UserName { get; set; }
-    public string UserAuthString { get; set; }
-    public bool HasAccess { get; set; }
-    public void BuildAuthString(string UserName);
-}
-
-public class User : Client
-{
-    public string UserName { get; set; }
-    public string UserAuthString { get; set; }
-    public bool HasAccess { get; set; }
-
-    public User(string name)
-    {
-        UserName = name;
-        HasAccess = false;
-    }
-
-    public void BuildAuthString(string UserName)
-    {
-        UserAuthString = UserName;
+       
     }
 
 }
 
-public class Manager : Client
+public class AuthorizedUser : User
 {
-    public string UserName { get; set; }
-    public string UserAuthString { get; set; }
-    public bool HasAccess { get; set; }
-    public Manager(string name)
+    public string Password { get; set; }
+    public AuthorizedUser(string password)
     {
-        UserName = name;
-        HasAccess = true;
+        Password = password;
     }
-    public void BuildAuthString(string UserName)
+
+    public string PasswordHash()
     {
-        UserAuthString = UserName + "MAN";
+        return Password + "Authorized";
     }
 }
 
-public class Admin : Client
+public class Administrator : User
 {
-    public string UserName { get; set; }
-    public string UserAuthString { get; set; }
-    public bool HasAccess { get; set; }
-    public Admin(string name)
+    public string Password { get; set; }
+    public Administrator(string password)
     {
-        UserName = name;
-        HasAccess = true;
+        Password = password;
     }
-    public void BuildAuthString(string UserName)
+
+    public string PasswordHash()
     {
-        UserAuthString = UserName + "ADMIN";
+        return Password + "Administrator";
     }
 }
 
-public interface AccessBehaviour
+public abstract class Factory
 {
-    public Client Client { get; set; }
-
-    public bool HandleAccess(Client client);
+    public abstract User CreatUser(string password, bool twoFactorAuthentication, bool isAdmin);
 }
 
-public class CheckString : AccessBehaviour
+public class TwoFactorRequired : Factory
 {
-    public Client Client { get; set; }
-
-
-    public bool HandleAccess(Client client)
+    public override User CreatUser(string password, bool twoFactorAuthentication, bool isAdmin)
     {
-        if (client.UserAuthString)
+
+        if (twoFactorAuthentication == true)
         {
-            return true;
+            return new AuthorizedUser("You will be AuthorizedUser");
+        } 
+        
+        else if (isAdmin == true)
+        {
+            return new Administrator("You will be Administrator");
+        }
+        else
+        {
+            throw new ArgumentException("Is wrong");
         }
     }
-
 }
 
-public class SwitchAuth : AccessBehaviour
+public class TwoFactorNotRequired : Factory
 {
-    public Client Client { get; set; }
-    public bool HandleAccess(Client client)
+    public override User CreatUser(string password, bool twoFactorAuthentication, bool isAdmin)
     {
-        if (client.HasAccess)
+
+        if (twoFactorAuthentication == true)
         {
-            client.HasAccess = false;
-        } else if (!client.HasAccess)
-        {
-            client.HasAccess = true;
+            return new AuthorizedUser("You will be AuthorizedUser");
         }
 
-        return client.HasAccess;
+        else if (isAdmin == true)
+        {
+            return new Administrator("You will be Administrator");
+        }
+        else
+        {
+            throw new ArgumentException("Is wrong");
+        }
     }
 }
